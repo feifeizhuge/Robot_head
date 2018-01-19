@@ -169,7 +169,7 @@ class UDPReceiverApplication(object):
                 print("the nearst people ID:%S, Degree:%s",(body,horizontalAngle))
                 
                 # free the lists
-                del Body[:]; del X[:]; del Y[:]; del Z[:]
+                #del Body[:]; del X[:]; del Y[:]; del Z[:]
             
                 
             
