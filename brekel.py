@@ -12,12 +12,9 @@ from std_msgs.msg import String
 
 import time
 import math
+import numpy as np
 
-
-body_list = []
-x_list = []
-y_list = []
-z_list = []
+Body = []; X = []; Y = []; Z = [];
 
 #horizontalAngle = 0
 
@@ -128,7 +125,12 @@ class UDPReceiverApplication(object):
         if self.watchdogDeadline is not None:
             if self.watchdogDeadline < time.time():
                 print("Receiving no data")
+                # when it receives no data, it will send (0,0)
+                print("Sending reset signal to motor")
+                hello_str = str(0;0)
+                pub.publish(hello_str)
                 self.watchdogDeadline = None
+                
                 #reactor.stop()
 
     def resetWatchDog(self):
@@ -146,37 +148,37 @@ class UDPReceiverApplication(object):
         jointname = message.address[1:-len('_joint_global')]
         joint_index = _BrekelJointnameToIndex[jointname]
         body_index = values[0]
+        global Body
+        global X
+        global Y
+        global Z
+        #time.sleep(0.5)
         
         if joint_index == 4:
+            # detect max six different people
             
-            body_list.append(values[0])
-            x_list.append(values[3])
-            y_list.append(values[4])
-            z_list.append(values[5])
-            if len(body_list) > 1:
+            Body.append(values[0])
+            X.append(values[3])
+            Y.append(values[4])
+            Z.append(values[5])
+            
+            if len(Body) == 6:
                 
-                if (body_list[-1] == body_list[-2]):
-                    print("body ID: %s, coordinates: z:%s" % (values[0],values[5]))
-                    #update body_list
-                    horizontalAngle = self.horizontalAngle(1,values[3],values[5])
-                    print("body ID: %s, horizontalAngle:%s" % (values[0],horizontalAngle))
-                    body_lisy = [body_list[-1]]
-                    x_list = [x_list[-1]]
-                    y_list = [y_list[-1]]
-                    z_list = [z_list[-1]]
-                    
-                    
-                else:
-                    if 
-                    body = 
-                    x=
-                    y=
-                    z=
-                    body_lisy = [body_list[-1]]
-                    x_list = [x_list[-1]]
-                    y_list = [y_list[-1]]
-                    z_list = [z_list[-1]]
+                Dist = np.linalg.norm(zip(X,Z),axis=1)
+                Index = Dist.argmin();
+                body = Body[Index];
+                x = X[Index]
+                y = Y[Index]
+                z = Z[Index]
+                horizontalAngle = self.horizontalAngle(1,x,z)
+                elevation = self.elevation(1,1.6,1.6,values[3],values[4],values[5])
                 
+                # check the info. output
+                print("the nearst people ID:%s, Degree:%s" %(body, horizontalAngle))
+                hello_str = str(horizontalAngle)+ ";" + str(elevation)
+                pub.publish(hello_str)
+                # free the lists
+                del Body[:]; del X[:]; del Y[:]; del Z[:]
 
             #horizontalAngle = self.horizontalAngle(1,values[3],values[5])
             #horiAnglelist.append(horizontalAngle)
@@ -252,8 +254,8 @@ class UDPReceiverApplication(object):
         
 if __name__ == '__main__':
    
-	#pub = rospy.Publisher('head_position', String, queue_size=10)
-	#rospy.init_node('head_node', anonymous=True)
+	pub = rospy.Publisher('head_position', String, queue_size=10)
+	rospy.init_node('head_node', anonymous=True)
 	UDPReceiverApplication(17780)
 	reactor.run()
 
