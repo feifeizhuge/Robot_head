@@ -12,12 +12,9 @@ from std_msgs.msg import String
 
 import time
 import math
+import numpy as np
 
-
-body_list = []
-x_list = []
-y_list = []
-z_list = []
+Body = []; X = []; Y = []; Z = [];
 
 #horizontalAngle = 0
 
@@ -146,37 +143,36 @@ class UDPReceiverApplication(object):
         jointname = message.address[1:-len('_joint_global')]
         joint_index = _BrekelJointnameToIndex[jointname]
         body_index = values[0]
+        global Body
+        global X
+        global Y
+        global Z
+        #time.sleep(0.5)
         
         if joint_index == 4:
+            # remember delete the global variable
+            # detect max three different people
             
-            body_list.append(values[0])
-            x_list.append(values[3])
-            y_list.append(values[4])
-            z_list.append(values[5])
-            if len(body_list) > 1:
+            Body.append(values[0])
+            X.append(values[3])
+            Y.append(values[4])
+            Z.append(values[5])
+            
+            if len(Body) == 3:
                 
-                if (body_list[-1] == body_list[-2]):
-                    print("body ID: %s, coordinates: z:%s" % (values[0],values[5]))
-                    #update body_list
-                    horizontalAngle = self.horizontalAngle(1,values[3],values[5])
-                    print("body ID: %s, horizontalAngle:%s" % (values[0],horizontalAngle))
-                    body_lisy = [body_list[-1]]
-                    x_list = [x_list[-1]]
-                    y_list = [y_list[-1]]
-                    z_list = [z_list[-1]]
-                    
-                    
-                else:
-                    if 
-                    body = 
-                    x=
-                    y=
-                    z=
-                    body_lisy = [body_list[-1]]
-                    x_list = [x_list[-1]]
-                    y_list = [y_list[-1]]
-                    z_list = [z_list[-1]]
+                Dist = np.linalg.norm(zip(X,Z),axis=1)
+                Index = Dist.argmin();
+                body = Body[Index];
+                x = X[Index]
+                y = Y[Index]
+                z = Z[Index]
+                horizontalAngle = self.horizontalAngle(1,x,z)
                 
+                # check the info. output
+                print("the nearst people ID:%S, Degree:%s",(body,horizontalAngle))
+                
+                # free the lists
+                del Body[:]; del X[:]; del Y[:]; del Z[:]
 
             #horizontalAngle = self.horizontalAngle(1,values[3],values[5])
             #horiAnglelist.append(horizontalAngle)
