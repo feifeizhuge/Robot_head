@@ -161,9 +161,10 @@ class UDPReceiverApplication(object):
             X.append(values[3])
             Y.append(values[4])
             Z.append(values[5])
+#            time.sleep(0.05)
             
             if len(Body) == 6:
-                
+                               
                 Dist = np.linalg.norm(zip(X,Z),axis=1)
                 Index = Dist.argmin();
                 body = Body[Index];
@@ -171,54 +172,55 @@ class UDPReceiverApplication(object):
                 y = Y[Index]
                 z = Z[Index]
                 
-                if((x**2+z**2) < 9):
-                    horizontalAngle = self.horizontalAngle(0,0.4,x,z)
-                    elevation = self.elevation(0,0.4,1.6,1.3,x,y,z)
-                    if(abs(horizontalAngle) < 30):
-                        # transform Body list into set, in order to calculate bodies
-                        bodySet = set(Body)
-                        if(len(bodySet) == 2):
-                            # two different people in the scene
-                            x1 = X[-1]; y1 = Y[-1]; z1 = Z[-1];
-                            x2 = X[-2]; y2 = Y[-2]; z2 = Z[-2];
-                            diff = (x1-x2)**2 + (z1-z2)**2
-                            if(diff <= 0.6**2):
-                                # it means two people are close enough, so robot needs to watch the two at the 
-                                # same time
-                                horizontalAngle = self.horizontalAngle(0,0.4,x1,z1)
-                                elevation = self.elevation(0,0.4,1.6,1.3,x1,y1,z1)
-                                print("I am watching the first ID:%s, Degree:%s" %(Body[-1], horizontalAngle))
-                                hello_str = str(horizontalAngle)+ ";" + str(elevation)
-                                pub.publish(hello_str)
-                                horizontalAngle = self.horizontalAngle(0,0.4,x2,z2)
-                                elevation = self.elevation(0,0.4,1.6,1.3,x2,y2,z2)
-                                print("I am watching the second ID:%s, Degree:%s" %(Body[-2], horizontalAngle))
-                                hello_str = str(horizontalAngle)+ ";" + str(elevation)
-                                pub.publish(hello_str)
-                                del Body[:]; del X[:]; del Y[:]; del Z[:]
-
-                            else:
-                                print("the nearst people ID:%s, Degree:%s" %(body, horizontalAngle))
-                                hello_str = str(horizontalAngle)+ ";" + str(elevation)
-                                pub.publish(hello_str)
-                                # free the lists
-                                del Body[:]; del X[:]; del Y[:]; del Z[:]
+                horizontalAngle = self.horizontalAngle(0.32,0.5,x,z)
+                elevation = self.elevation(0.32,0.5,1.6,1.1,x,y,z)
+                
+                if( (x**2+z**2)<9 and abs(horizontalAngle)<30 ):
+                    
+                    # transform Body list into set, in order to calculate bodies
+                    bodySet = set(Body)
+                    if(len(bodySet) == 2):
+                        # two different people in the scene
+                        x1 = X[-1]; y1 = Y[-1]; z1 = Z[-1];
+                        x2 = X[-2]; y2 = Y[-2]; z2 = Z[-2];
+                        diff = (x1-x2)**2 + (z1-z2)**2
+                        if(diff <= 0.8**2):
+                            # it means two people are close enough, so robot needs to watch the two at the 
+                            # same time
+                            horizontalAngle = self.horizontalAngle(0.32,0.5,x1,z1)
+                            elevation = self.elevation(0.32,0.5,1.6,1.1,x1,y1,z1)
+                            print("I am watching the first ID:%s, horizon:%s, elevation:%s" %(Body[-1], horizontalAngle,elevation))
+                            hello_str = str(horizontalAngle)+ ";" + str(elevation)
+                            pub.publish(hello_str)
+                            rospy.sleep(0.8);
+                            horizontalAngle = self.horizontalAngle(0.32,0.5,x2,z2)
+                            elevation = self.elevation(0.32,0.5,1.6,1.1,x2,y2,z2)
+                            print("I am watching the second ID:%s, horizon:%s, elevation:%s" %(Body[-2], horizontalAngle,elevation))
+                            hello_str = str(horizontalAngle)+ ";" + str(elevation)
+                            pub.publish(hello_str)
+                            rospy.sleep(0.8);                   
+                            del Body[:]; del X[:]; del Y[:]; del Z[:]
 
                         else:
-                            # check the info. output
-                            print("the nearst people ID:%s, Degree:%s" %(body, horizontalAngle))
+                            print("the nearst people ID:%s, horizon:%s, elevation:%s" %(body, horizontalAngle,elevation))
                             hello_str = str(horizontalAngle)+ ";" + str(elevation)
                             pub.publish(hello_str)
                             # free the lists
                             del Body[:]; del X[:]; del Y[:]; del Z[:]
+
                     else:
-                        hello_str = "0;0"
+                        # check the info. output
+                        print("the nearst people ID:%s, horizon:%s, elevation:%s" %(body, horizontalAngle,elevation))
+                        hello_str = str(horizontalAngle)+ ";" + str(elevation)
                         pub.publish(hello_str)
+                        # free the lists
                         del Body[:]; del X[:]; del Y[:]; del Z[:]
                 else:
                     hello_str = "0;0"
                     pub.publish(hello_str)
                     del Body[:]; del X[:]; del Y[:]; del Z[:]
+            
+                del Body[:]; del X[:]; del Y[:]; del Z[:]
                 
 
             #horizontalAngle = self.horizontalAngle(1,values[3],values[5])
