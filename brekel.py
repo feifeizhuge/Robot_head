@@ -14,7 +14,7 @@ import time
 import math
 import numpy as np
 
-Body = []; X = []; Y = []; Z = [];
+Body = []; X = []; Y = []; Z = []; flag = 0;
 
 #horizontalAngle = 0
 
@@ -144,6 +144,9 @@ class UDPReceiverApplication(object):
         """
         self.resetWatchDog()
 
+        #
+        # receive everyones' joint data 
+        #
         values = message.getValues()
         jointname = message.address[1:-len('_joint_global')]
         joint_index = _BrekelJointnameToIndex[jointname]
@@ -152,93 +155,96 @@ class UDPReceiverApplication(object):
         global X
         global Y
         global Z
-        #time.sleep(0.5)
-        
+        global flag 
+        #
+        # Condition one:
+        #    only receive the joint head's data, joint_index(4) --> head
+        #
         if joint_index == 4:
-            # detect max six different people
-            
-            Body.append(values[0])
-            X.append(values[3])
-            Y.append(values[4])
-            Z.append(values[5])
-#            time.sleep(0.05)
-            
-            if len(Body) == 6:
-                               
-                Dist = np.linalg.norm(zip(X,Z),axis=1)
-                Index = Dist.argmin();
-                body = Body[Index];
-                x = X[Index]
-                y = Y[Index]
-                z = Z[Index]
-                
-                horizontalAngle = self.horizontalAngle(0.32,0.5,x,z)
-                elevation = self.elevation(0.32,0.5,1.6,1.1,x,y,z)
-                
-                if( (x**2+z**2)<9 and abs(horizontalAngle)<30 ):
-                    
-                    # transform Body list into set, in order to calculate bodies
-                    bodySet = set(Body)
-                    if(len(bodySet) == 2):
+            # define x,y,z 
+            x = values[3]
+            y = values[4]
+            z = values[5]
+            #
+            # condition two:
+            #   only receive the data, which distance is smaller than 3 meters and
+            #   the elevation degree is smaller than 30 
+            #
+            # important arguments for elevation:
+            #   0.32 --> horizontal distance between camera and robothead
+            #   0.5  --> vertical distance between camera and robothead
+            #   1.6  --> vertical distance between camera and ground
+            #   1.1  --> vertical distance between robothead and ground 
+            elevation = self.elevation(0.32,0.5,1.6,1.1,x,y,z)
+            if( (x**2+z**2)<9 and abs(horizontalAngle)<30 ):
+
+                # push_back the wanted body_index, x, y, z into the lists respectively
+                Body.append(values[0])
+                X.append(values[3])
+                Y.append(values[4])
+                Z.append(values[5])
+
+                # because the camera is 30 fps, when we have received 12 data, it costs 0.4s 
+                if len(Body) >= 12:
+                    #
+                    # compute the nearst people's position
+                    #
+                    Dist = np.linalg.norm(zip(X,Z),axis=1)
+                    Index = Dist.argmin();
+                    body = Body[Index]; x = X[Index]; y = Y[Index]; z = Z[Index];
+                    horizontalAngle = self.horizontalAngle(0.32,0.5,x1,z1)
+                    elevation = self.elevation(0.32,0.5,1.6,1.1,x1,y1,z1)
+                    # transform Body list into set, in order to count different people
+                    if(len(set(Body)) == 2):
                         # two different people in the scene
                         x1 = X[-1]; y1 = Y[-1]; z1 = Z[-1];
                         x2 = X[-2]; y2 = Y[-2]; z2 = Z[-2];
+                        # diff is the two people's distance bewteen each other
+                        # flag=0 means this loop 
                         diff = (x1-x2)**2 + (z1-z2)**2
                         if(diff <= 0.8**2):
                             # it means two people are close enough, so robot needs to watch the two at the 
                             # same time
-                            horizontalAngle = self.horizontalAngle(0.32,0.5,x1,z1)
-                            elevation = self.elevation(0.32,0.5,1.6,1.1,x1,y1,z1)
-                            print("I am watching the first ID:%s, horizon:%s, elevation:%s" %(Body[-1], horizontalAngle,elevation))
-                            hello_str = str(horizontalAngle)+ ";" + str(elevation)
-                            pub.publish(hello_str)
-                            rospy.sleep(0.8);
-                            horizontalAngle = self.horizontalAngle(0.32,0.5,x2,z2)
-                            elevation = self.elevation(0.32,0.5,1.6,1.1,x2,y2,z2)
-                            print("I am watching the second ID:%s, horizon:%s, elevation:%s" %(Body[-2], horizontalAngle,elevation))
-                            hello_str = str(horizontalAngle)+ ";" + str(elevation)
-                            pub.publish(hello_str)
-                            rospy.sleep(0.8);                   
-                            del Body[:]; del X[:]; del Y[:]; del Z[:]
+                            if(len(Body)>=60):
+                                x1 = X[-1]; y1 = Y[-1]; z1 = Z[-1];
+                                x2 = X[-2]; y2 = Y[-2]; z2 = Z[-2];
+                                if(flag==1):
+                                    flag = (flag+1)%2
+                                    horizontalAngle = self.horizontalAngle(0.32,0.5,x1,z1)
+                                    elevation = self.elevation(0.32,0.5,1.6,1.1,x1,y1,z1)
+                                    print("I am watching the first ID:%s, horizon:%s, elevation:%s" %(Body[-1], horizontalAngle,elevation))
+                                    hello_str = str(horizontalAngle)+ ";" + str(elevation)
+                                    pub.publish(hello_str)
+                                    del Body[:]; del X[:]; del Y[:]; del Z[:]
+                                else:
+                                    flag = (flag+1)%2
+                                    horizontalAngle = self.horizontalAngle(0.32,0.5,x2,z2)
+                                    elevation = self.elevation(0.32,0.5,1.6,1.1,x2,y2,z2)
+                                    print("I am watching the first ID:%s, horizon:%s, elevation:%s" %(Body[-2], horizontalAngle,elevation))
+                                    hello_str = str(horizontalAngle)+ ";" + str(elevation)
+                                    pub.publish(hello_str)
+                                    del Body[:]; del X[:]; del Y[:]; del Z[:]
+                            # else:
+                            #   expand the list length
 
+                        # the.two people are not close enough, so senden the nearst people
                         else:
                             print("the nearst people ID:%s, horizon:%s, elevation:%s" %(body, horizontalAngle,elevation))
                             hello_str = str(horizontalAngle)+ ";" + str(elevation)
                             pub.publish(hello_str)
-                            # free the lists
                             del Body[:]; del X[:]; del Y[:]; del Z[:]
 
+                    # the data list isn't only two people, so senden the nearst people
                     else:
-                        # check the info. output
                         print("the nearst people ID:%s, horizon:%s, elevation:%s" %(body, horizontalAngle,elevation))
                         hello_str = str(horizontalAngle)+ ";" + str(elevation)
                         pub.publish(hello_str)
-                        # free the lists
                         del Body[:]; del X[:]; del Y[:]; del Z[:]
-                else:
-                    hello_str = "0;0"
-                    pub.publish(hello_str)
-                    del Body[:]; del X[:]; del Y[:]; del Z[:]
-            
-                del Body[:]; del X[:]; del Y[:]; del Z[:]
-                
+            # if there is no suitable people, so senden reset signal
+             else:
+                hello_str = "0;0"
+                pub.publish(hello_str)
 
-            #horizontalAngle = self.horizontalAngle(1,values[3],values[5])
-            #horiAnglelist.append(horizontalAngle)
-            
-            #elevation = self.elevation(1,1.6,1.6,values[3],values[4],values[5])
-            #print("body ID: %s, coordinates: x:%s y:%s z:%s" % (values[0], values[3], values[4], values[5]))
-            #print("horizontalAngle:%s" % horizontalAngle)
-            #hello_str = str(horizontalAngle)
-            #pub.publish(hello_str)
-            #print("  elevation:%s" % elevation)
-            #print("  list:%s" % len(horiAnglelist))
-            
-#            if(len(horiAnglelist) > 0):
-#                horiAnglelist = [0]
-#                reactor.stop()
-                
-        
         """
         data access here
             values is a list of joints
@@ -292,21 +298,9 @@ class UDPReceiverApplication(object):
     def elevation(self,distance_h,distance_v,height_kinect,height_robot,x,y,z):
         distance = math.sqrt((z-distance_v)**2+(distance_h-x)**2)
         rad = math.atan(((height_kinect+y)-height_robot)/distance)
-    
-    #        rad = math.atan(((height_kinect+y)-height_robot)/math.sqrt(z**2+(distance-x)**2))
-    #        rad = math.atan(y/(math.sqrt(z**2+(distance-x)**2)))
         degree = 2*90*rad/math.pi
         return degree
-#    def horizontalAngle(self,distance,x,z):
-#        rad = math.atan(z/(distance-x))
-#        degree = 2*90*rad/math.pi
-#        return degree
-#        
-#    def elevation(self,distance,height_kinect,height_robot,x,y,z):
-#        rad = math.atan(((height_kinect+y)-height_robot)/math.sqrt(z**2+(distance-x)**2))
-##        rad = math.atan(y/(math.sqrt(z**2+(distance-x)**2)))
-#        degree = 2*90*rad/math.pi
-#        return degree
+
         
 if __name__ == '__main__':
    
