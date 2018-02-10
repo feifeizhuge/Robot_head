@@ -220,7 +220,7 @@ class UDPReceiverApplication(object):
                                     flag = (flag+1)%2
                                     horizontalAngle = self.horizontalAngle(0.32,0.5,x2,z2)
                                     elevation = self.elevation(0.32,0.5,1.6,1.1,x2,y2,z2)
-                                    print("I am watching the first ID:%s, horizon:%s, elevation:%s" %(Body[-2], horizontalAngle,elevation))
+                                    print("I am watching the second ID:%s, horizon:%s, elevation:%s" %(Body[-2], horizontalAngle,elevation))
                                     hello_str = str(horizontalAngle)+ ";" + str(elevation)
                                     pub.publish(hello_str)
                                     del Body[:]; del X[:]; del Y[:]; del Z[:]
