@@ -175,7 +175,7 @@ class UDPReceiverApplication(object):
             #   0.5  --> vertical distance between camera and robothead
             #   1.6  --> vertical distance between camera and ground
             #   1.1  --> vertical distance between robothead and ground 
-            elevation = self.elevation(0.32,0.5,1.6,1.1,x,y,z)
+            horizontalAngle= self.horizontalAngle(0.32,0.5,x,z)
             if( (x**2+z**2)<9 and abs(horizontalAngle)<30 ):
 
                 # push_back the wanted body_index, x, y, z into the lists respectively
@@ -192,8 +192,8 @@ class UDPReceiverApplication(object):
                     Dist = np.linalg.norm(zip(X,Z),axis=1)
                     Index = Dist.argmin();
                     body = Body[Index]; x = X[Index]; y = Y[Index]; z = Z[Index];
-                    horizontalAngle = self.horizontalAngle(0.32,0.5,x1,z1)
-                    elevation = self.elevation(0.32,0.5,1.6,1.1,x1,y1,z1)
+                    horizontalAngle = self.horizontalAngle(0.32,0.5,x,z)
+                    elevation = self.elevation(0.32,0.5,2.4,1.1,x,y,z)
                     # transform Body list into set, in order to count different people
                     if(len(set(Body)) == 2):
                         # two different people in the scene
@@ -211,7 +211,7 @@ class UDPReceiverApplication(object):
                                 if(flag==1):
                                     flag = (flag+1)%2
                                     horizontalAngle = self.horizontalAngle(0.32,0.5,x1,z1)
-                                    elevation = self.elevation(0.32,0.5,1.6,1.1,x1,y1,z1)
+                                    elevation = self.elevation(0.32,0.5,2.4,1.1,x1,y1,z1)
                                     print("I am watching the first ID:%s, horizon:%s, elevation:%s" %(Body[-1], horizontalAngle,elevation))
                                     hello_str = str(horizontalAngle)+ ";" + str(elevation)
                                     pub.publish(hello_str)
@@ -219,7 +219,7 @@ class UDPReceiverApplication(object):
                                 else:
                                     flag = (flag+1)%2
                                     horizontalAngle = self.horizontalAngle(0.32,0.5,x2,z2)
-                                    elevation = self.elevation(0.32,0.5,1.6,1.1,x2,y2,z2)
+                                    elevation = self.elevation(0.32,0.5,2.4,1.1,x2,y2,z2)
                                     print("I am watching the second ID:%s, horizon:%s, elevation:%s" %(Body[-2], horizontalAngle,elevation))
                                     hello_str = str(horizontalAngle)+ ";" + str(elevation)
                                     pub.publish(hello_str)
@@ -240,10 +240,7 @@ class UDPReceiverApplication(object):
                         hello_str = str(horizontalAngle)+ ";" + str(elevation)
                         pub.publish(hello_str)
                         del Body[:]; del X[:]; del Y[:]; del Z[:]
-            # if there is no suitable people, so senden reset signal
-             else:
-                hello_str = "0;0"
-                pub.publish(hello_str)
+
 
         """
         data access here
